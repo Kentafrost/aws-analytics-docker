@@ -80,8 +80,7 @@ def plot_graph_graphic(full_dict, graph_name, path, cur):
     
     try:
         plt.figure(figsize=(10, 6))
-        # make the pie chart
-        plt.pie(graph_name, state, avg_population, max_population, min_population)
+        plt.pie([avg_population, max_population, min_population], labels=['Average', 'Max', 'Min'], autopct='%1.1f%%')
         
         # Title and labels
         plt.title('Population by State')

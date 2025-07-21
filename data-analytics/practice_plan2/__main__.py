@@ -1,5 +1,4 @@
-import pandas, numpy
-import boto3, csv
+import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -30,39 +29,43 @@ def insert_data():
             success = success + 1
         else:
             fail = fail + 1
-        # カウント入れていく。
     success_chk_list = {'number of success query': success, 'number of fail': fail}
     return success_chk_list
 
-def send_mail(mail_address, mail_pw, yourchoice):
+def send_mail(mail_address, mail_pw):
     
-    if yourchoice == 'y':
-        logging.info('メール送信処理を開始します。')
-        try:
-            # メールの内容(SSMから取得)
-            from_address = mail_address
-            to_address = mail_address
-            subject = "Data analysis report"
-            bodyText = "Here's your data analysis report."
-            inquiry_category = "Data analysis"
-            attachments = []
-        except Exception as e:
-            logging.error('メールの内容をSSMから取得できませんでした。{}'.format(e))
+    logging.info('メール送信処理を開始します。')
+    try:
+        # メールの内容(SSMから取得)
+        from_address = mail_address
+        to_address = mail_address
+        subject = "Data analysis report"
+        bodyText = "Here's your data analysis report."
+        inquiry_category = "Data analysis"
+        attachments = []
+    except Exception as e:
+        logging.error('メールの内容をSSMから取得できませんでした。{}'.format(e))
             
-        try:
-            if "gmail.com" in mail_address:
-                port = 465
-                with smtplib.SMTP_SSL('smtp.gmail.com', port) as smtp_server:
-                    smtp_server.login(mail_address, gmail_pw)
-                    message = 'Subject: {}\n\n{}'.format(subject, bodyText)
-                    smtp_server.sendmail(from_address, to_address, message)
-                logging.info('正常にメール送信完了')
-            elif "outlook" in mail_address:
-                print(f"Outlook" in {mail_address})
-        except Exception as e:
-            logging.error('メール送信処理でエラーが発生しました。{}'.format(e))
-    else:
-        logging.info('メール送信処理を中止します。')
+    try:
+        if "gmail.com" in mail_address:
+            port = 465
+            with smtplib.SMTP_SSL('smtp.gmail.com', port) as smtp_server:
+                smtp_server.login(mail_address, gmail_pw)
+                message = 'Subject: {}\n\n{}'.format(subject, bodyText)
+                smtp_server.sendmail(from_address, to_address, message)
+            logging.info('正常にgmail送信完了')
+            
+        elif "outlook" in mail_address:
+            port = 587
+            with smtplib.SMTP('smtp-mail.outlook.com', port) as smtp_server:
+                smtp_server.starttls()
+                smtp_server.login(mail_address, gmail_pw)
+                message = 'Subject: {}\n\n{}'.format(subject, bodyText)
+                smtp_server.sendmail(from_address, to_address, message)
+            logging.info('正常にOutlookメール送信完了')
+
+    except Exception as e:
+        logging.error('メール送信処理でエラーが発生しました。{}'.format(e))
 
 
 if __name__ == "__main__":
@@ -98,6 +101,7 @@ if __name__ == "__main__":
     #read the csv file contains the csv path to create the dataframe and create its list.
     current_file_path= os.path.dirname(__file__)
     
+    # DBへ接続して、データを加工して入れていく
     logging.info("データベースへの接続開始します。")
     try:
         conn = pymysql.connect(
@@ -121,12 +125,10 @@ if __name__ == "__main__":
         if ('coca-cola' in key) == True:
             replace_num = [1, 2, 3, 4, 5, 6]
             
-            # 複数のパスがあり、辞書型ではそのまま入らないため、"_1"等で辞書型に格納。
-            # パスが合わないため、数字部分の削除を行う
             for num in replace_num:
                 if ("_" + str(num) in value) == True:
                     value = value.replace(("_" + str(num)), "")
-            df = pandas.read_csv(value)
+            df = pd.read_csv(value)
             
             if ('KO' in value) == True and ('price' in value) == True:
                 dict = calc_price(df, "open") #戻し値として、成功した数、失敗した数を返す。
@@ -154,8 +156,8 @@ if __name__ == "__main__":
                 dict = calc_price(df, "close")
                 result8 = plot_graph(dict, "PEP_close_price", current_file_path, cur)
         else: 
-            df = pandas.read_csv(value)
-            
+            df = pd.read_csv(value)
+
             # 各種データの処理を行う。(いまだ、作成中)
             if ('Ai' in key) == True:
                 print("AAA")
@@ -181,7 +183,7 @@ if __name__ == "__main__":
                 print('AAA')
     
     send_option = input("Send mail?(y/n): ")
-    
-    # メールアドレスがoutlookだった場合の処理入れる
-    send_mail(gmail_addr, gmail_pw, send_option)
-    
+
+    if send_option == 'y':
+        send_mail(gmail_addr, gmail_pw)
+
