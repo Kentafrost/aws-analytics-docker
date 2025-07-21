@@ -1,0 +1,12 @@
+dockerfileの使い方
+⇒コマンドでもイメージ作成可能だが、フォルダーから右クリックでも可能。
+　⇒イメージ作成後に、docker desktopで確認可能。
+
+docker ps -a
+docker images：イメージ確認可能。
+docker pull ～ で公開されているイメージをダウンロード可能。
+
+docker run --name コンテナ名 -it 使用するイメージ名:タグ名
+⇒イメージからコンテナ起動する際に使用。
+
+exitでコンテナから抜けられる。
